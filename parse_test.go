@@ -102,7 +102,7 @@ func TestParseValidListLine(t *testing.T) {
 	for _, lt := range listTests {
 		t.Run(lt.line, func(t *testing.T) {
 			assert := assert.New(t)
-			entry, err := parseListLine(lt.line, now, time.UTC)
+			entry, err := ParseListLine(lt.line, now, time.UTC)
 
 			if assert.NoError(err) {
 				assert.Equal(lt.name, entry.Name)
@@ -118,7 +118,7 @@ func TestParseSymlinks(t *testing.T) {
 	for _, lt := range listTestsSymlink {
 		t.Run(lt.line, func(t *testing.T) {
 			assert := assert.New(t)
-			entry, err := parseListLine(lt.line, now, time.UTC)
+			entry, err := ParseListLine(lt.line, now, time.UTC)
 
 			if assert.NoError(err) {
 				assert.Equal(lt.name, entry.Name)
@@ -132,7 +132,7 @@ func TestParseSymlinks(t *testing.T) {
 func TestParseUnsupportedListLine(t *testing.T) {
 	for _, lt := range listTestsFail {
 		t.Run(lt.line, func(t *testing.T) {
-			_, err := parseListLine(lt.line, now, time.UTC)
+			_, err := ParseListLine(lt.line, now, time.UTC)
 
 			assert.EqualError(t, err, lt.err.Error())
 		})

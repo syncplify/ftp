@@ -567,7 +567,7 @@ func (c *ServerConn) List(path string) (entries []*Entry, err error) {
 		parser = parseRFC3659ListLine
 	} else {
 		cmd = "LIST"
-		parser = parseListLine
+		parser = ParseListLine
 	}
 
 	conn, err := c.cmdDataConnFrom(0, "%s %s", cmd, path)

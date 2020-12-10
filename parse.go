@@ -215,9 +215,9 @@ func parseHostedFTPLine(line string, now time.Time, loc *time.Location) (*Entry,
 	return parseLsListLine(fields[0]+" 1 "+scanner.Remaining(), now, loc)
 }
 
-// parseListLine parses the various non-standard format returned by the LIST
+// ParseListLine parses the various non-standard format returned by the LIST
 // FTP command.
-func parseListLine(line string, now time.Time, loc *time.Location) (*Entry, error) {
+func ParseListLine(line string, now time.Time, loc *time.Location) (*Entry, error) {
 	for _, f := range listLineParsers {
 		e, err := f(line, now, loc)
 		if err != errUnsupportedListLine {

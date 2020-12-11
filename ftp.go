@@ -11,8 +11,10 @@ import (
 	"io"
 	"net"
 	"net/textproto"
+	"os"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 )
 
@@ -635,6 +637,24 @@ func (c *ServerConn) FileSize(path string) (int64, error) {
 	return strconv.ParseInt(msg, 10, 64)
 }
 
+// Stat sends a STAT command to the FTP server
+func (c *ServerConn) Stat(path string) (*Entry, error) {
+	_, response, err := c.cmd(211, "STAT %s", path)
+	if err != nil {
+		return nil, err
+	}
+	// If we get here, we've got a response AND the object exists!
+	parts := strings.Split(response, "\n")
+	var entry *Entry
+	for _, part := range parts {
+		entry, err = ParseListLine(strings.TrimSpace(part), time.Now(), time.Now().Location())
+		if err == nil {
+			break
+		}
+	}
+	return entry, nil
+}
+
 // Retr issues a RETR FTP command to fetch the specified file from the remote
 // FTP server.
 //
@@ -776,6 +796,54 @@ func (c *ServerConn) RemoveDirRecur(path string) error {
 func (c *ServerConn) MakeDir(path string) error {
 	_, _, err := c.cmd(StatusPathCreated, "MKD %s", path)
 	return err
+}
+
+// MkdirAll creates a directory named path, along with any necessary parents,
+// and returns nil, or else returns an error.
+// If path is already a directory, MkdirAll does nothing and returns nil.
+// If path contains a regular file, an error is returned
+func (c *ServerConn) MkdirAll(path string) error {
+	// Most of this code mimics https://golang.org/src/os/path.go?s=514:561#L13
+	// Fast path: if we can tell whether path is a directory or file, stop with success or error.
+	dir, err := c.Stat(path)
+	if err == nil {
+		if dir.Type == EntryTypeFolder {
+			return nil
+		}
+		return &os.PathError{Op: "mkdir", Path: path, Err: syscall.ENOTDIR}
+	}
+
+	// Slow path: make sure parent exists and then call Mkdir for path.
+	i := len(path)
+	for i > 0 && os.IsPathSeparator(path[i-1]) { // Skip trailing path separator.
+		i--
+	}
+
+	j := i
+	for j > 0 && !os.IsPathSeparator(path[j-1]) { // Scan backward over element.
+		j--
+	}
+
+	if j > 1 {
+		// Create parent
+		err = c.MkdirAll(path[0 : j-1])
+		if err != nil {
+			return err
+		}
+	}
+
+	// Parent now exists; invoke Mkdir and use its result.
+	err = c.MakeDir(path)
+	if err != nil {
+		// Handle arguments like "foo/." by
+		// double-checking that directory doesn't exist.
+		dir, err1 := c.Stat(path)
+		if err1 == nil && dir.Type == EntryTypeFolder {
+			return nil
+		}
+		return err
+	}
+	return nil
 }
 
 // RemoveDir issues a RMD FTP command to remove the specified directory from

@@ -652,6 +652,9 @@ func (c *ServerConn) Stat(path string) (*Entry, error) {
 			break
 		}
 	}
+	if entry == nil {
+		return nil, errors.New("failed to parse server response to STAT command")
+	}
 	return entry, nil
 }
 

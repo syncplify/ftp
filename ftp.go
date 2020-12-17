@@ -808,9 +808,9 @@ func (c *ServerConn) MakeDir(path string) error {
 func (c *ServerConn) MkdirAll(path string) error {
 	// Most of this code mimics https://golang.org/src/os/path.go?s=514:561#L13
 	// Fast path: if we can tell whether path is a directory or file, stop with success or error.
-	dir, err := c.Stat(path)
+	siz, err := c.FileSize(path)
 	if err == nil {
-		if dir.Type == EntryTypeFolder {
+		if siz == 0 {
 			return nil
 		}
 		return &os.PathError{Op: "mkdir", Path: path, Err: syscall.ENOTDIR}
@@ -840,8 +840,8 @@ func (c *ServerConn) MkdirAll(path string) error {
 	if err != nil {
 		// Handle arguments like "foo/." by
 		// double-checking that directory doesn't exist.
-		dir, err1 := c.Stat(path)
-		if err1 == nil && dir.Type == EntryTypeFolder {
+		siz1, err1 := c.FileSize(path)
+		if err1 == nil && siz1 == 0 {
 			return nil
 		}
 		return err
